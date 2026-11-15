@@ -1,0 +1,6 @@
+# Build-Ausgabe von Cargo (lässt sich jederzeit neu bauen)
+/target/
+
+# Fertig gebaute App – entsteht mit bauen.bat
+/PuzzleCellar.exe
+/Raetselheft.exe
