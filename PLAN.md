@@ -67,6 +67,9 @@ Deshalb sind in `Cargo.lock` ältere Versionen festgenagelt:
 
 `link-gnu/libshlwapi.a` (aus `winapi-x86_64-pc-windows-gnu`) ergänzt eine fehlende
 Importbibliothek; `build.rs` macht sie dem Linker bekannt.
+Das Programm-Icon (`assets/icon.ico`) setzt `bauen.bat` nach dem Bauen mit
+`examples/icon_einsetzen.rs` per Windows-`UpdateResource` in die .exe – `windres` fehlt.
+Das Fenster-Icon kommt aus `assets/icon_64.rgba` (Rohdaten, kein PNG-Decoder nötig).
 **Kein pauschales `cargo update`** – sonst kommen die neuen Versionen zurück.
 Will man das loswerden: vollständiges MinGW (z. B. WinLibs) oder die MSVC-Build-Tools installieren.
 

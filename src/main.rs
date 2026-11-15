@@ -5,10 +5,15 @@ mod app;
 
 use eframe::egui;
 
+/// Fenster-Icon: 64 × 64 Pixel, RGBA-Rohdaten (aus assets/icon.ico erzeugt)
+const ICON_64: &[u8] = include_bytes!("../assets/icon_64.rgba");
+
 fn main() -> eframe::Result {
+    let icon = egui::IconData { rgba: ICON_64.to_vec(), width: 64, height: 64 };
     let optionen = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title("PuzzleCellar")
+            .with_icon(icon)
             .with_inner_size([520.0, 600.0])
             .with_min_inner_size([460.0, 540.0]),
         ..Default::default()

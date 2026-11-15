@@ -1,4 +1,6 @@
-# PuzzleCellar
+<p align="center"><img src="assets/icon.png" alt="PuzzleCellar icon" width="128"></p>
+
+<h1 align="center">PuzzleCellar</h1>
 
 **One click, one fresh puzzle booklet.** PuzzleCellar is a small Windows desktop app written in Rust that generates printable puzzle booklets as PDF – Sudoku, Binoxo (Takuzu), Battleships (Bimaru) and Nonograms (Picross) – every puzzle new, randomly generated and guaranteed to have exactly one solution.
 
@@ -35,7 +37,7 @@ It is made for people who like their puzzles *hard* and on paper: the difficulty
 PuzzleCellar is built from source (Windows).
 
 1. Install Rust: <https://rustup.rs>. The project is developed with the lightweight **GNU toolchain** (`x86_64-pc-windows-gnu`, no Visual Studio needed); the MSVC toolchain has not been tested.
-2. Clone the repository and double-click **`bauen.bat`** (“build”). It compiles a release build and puts **`PuzzleCellar.exe`** into the project folder.
+2. Clone the repository and double-click **`bauen.bat`** (“build”). It compiles a release build, puts **`PuzzleCellar.exe`** into the project folder and stamps the app icon into it (`examples/icon_einsetzen.rs` uses the Windows `UpdateResource` API, since the GNU toolchain has no resource compiler).
 3. Start `PuzzleCellar.exe`, press **“Neues Rätselheft erzeugen”** (“create new booklet”). The PDF is saved to `Documents\Rätselhefte` and opened right away.
 
 Fonts (Arial, Georgia) are taken from `C:\Windows\Fonts` at runtime and embedded into the PDF; they are not part of this repository.
