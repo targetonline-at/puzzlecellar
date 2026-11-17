@@ -35,12 +35,13 @@ pub fn zeichne_aufgabe(s: &Seite, sch: &Schiffe, feld: Rechteck) {
         }
     }
 
-    // Hinweise
+    // Hinweise – Schiffsteile nur als Kontur (spart Tinte, wie in der Legende)
+    s.linienfarbe(0.0);
     for &(i, t) in &sch.hinweise {
         let cx = x0 + (i % n) as f32 * zelle + zelle / 2.0;
         let cy = y0 + (i / n) as f32 * zelle + zelle / 2.0;
         let r = zelle * 0.34;
-        teil(s, t, cx, cy, r, r);
+        teil(s, t, cx, cy, r, r, true);
     }
 
     // Flotte: „1×“ + Schiff, nach Länge gruppiert
@@ -92,7 +93,8 @@ fn flotte_zeichnen(s: &Seite, gruppen: &[(usize, usize)], feld: Rechteck, y: f32
         s.fuellfarbe(0.3);
         s.text(&texte[k], x, y + u * 0.36, pt, Schrift::Normal, Ausrichtung::Links);
         x += s.schriften.breite(Schrift::Normal, &texte[k], pt) + 1.2;
-        s.fuellfarbe(0.2);
+        // Vorgegebene Flotte nur als Kontur – spart Tinte
+        s.linienfarbe(0.2);
         for j in 0..laenge {
             let t = match (laenge, j) {
                 (1, _) => Teil::Einzel,
@@ -101,15 +103,18 @@ fn flotte_zeichnen(s: &Seite, gruppen: &[(usize, usize)], feld: Rechteck, y: f32
                 _ => Teil::Mitte,
             };
             // kleine Fugen zwischen den Teilen, damit man die Länge abzählen kann
-            teil(s, t, x + (j as f32 + 0.5) * u, y, u * 0.4, u * 0.4);
+            teil(s, t, x + (j as f32 + 0.5) * u, y, u * 0.4, u * 0.4, true);
         }
+        s.linienfarbe(0.0);
         x += laenge as f32 * u + luecke;
     }
 }
 
 /// Ein Schiffsteil oder Wasser um (cx, cy). `r` = halbe Dicke,
 /// `aus` = wie weit die flache Seite reicht (in der Flotte bis an den Nachbarn).
-fn teil(s: &Seite, t: Teil, cx: f32, cy: f32, r: f32, aus: f32) {
+/// `kontur` = nur Umriss zeichnen (spart Tinte; für die vorgegebene Flotte).
+fn teil(s: &Seite, t: Teil, cx: f32, cy: f32, r: f32, aus: f32, kontur: bool) {
+    let st = (r * 0.32).clamp(0.5, 0.9); // Strichstärke der Konturen in pt (größere Teile kräftiger)
     match t {
         Teil::Wasser => {
             s.linienfarbe(0.1);
@@ -125,8 +130,21 @@ fn teil(s: &Seite, t: Teil, cx: f32, cy: f32, r: f32, aus: f32) {
             }
             s.linienfarbe(0.0);
         }
-        Teil::Einzel => s.scheibe(cx, cy, r),
-        Teil::Mitte => s.flaeche(Rechteck::neu(cx - aus, cy - r, 2.0 * aus, 2.0 * r)),
+        Teil::Einzel => {
+            if kontur {
+                s.kreis(cx, cy, r, st);
+            } else {
+                s.scheibe(cx, cy, r);
+            }
+        }
+        Teil::Mitte => {
+            let feld = Rechteck::neu(cx - aus, cy - r, 2.0 * aus, 2.0 * r);
+            if kontur {
+                s.rahmen(feld, st);
+            } else {
+                s.flaeche(feld);
+            }
+        }
         Teil::Ende(richtung) => {
             // Lokale Achsen: u in Fahrtrichtung, v quer dazu
             let (dr, dc) = richtung.schritt();
@@ -141,7 +159,11 @@ fn teil(s: &Seite, t: Teil, cx: f32, cy: f32, r: f32, aus: f32) {
                 .collect();
             ecken.push(bild(aus, -r));
             ecken.push(bild(aus, r));
-            s.vieleck(&ecken, PaintMode::Fill);
+            if kontur {
+                s.umriss(&ecken, st);
+            } else {
+                s.vieleck(&ecken, PaintMode::Fill);
+            }
         }
     }
 }

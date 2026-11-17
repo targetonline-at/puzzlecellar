@@ -83,7 +83,8 @@ impl Raetsel {
     pub fn platz(&self) -> Platz {
         match self {
             Raetsel::Sudoku(_) | Raetsel::Binoxo(_) | Raetsel::Schiffe(_) => Platz::Viertelseite,
-            Raetsel::Nonogramm(_) => Platz::Ganzseite,
+            // Zwei Nonogramme teilen sich eine Seite – spart Papier
+            Raetsel::Nonogramm(_) => Platz::Halbseite,
         }
     }
 

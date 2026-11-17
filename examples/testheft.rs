@@ -1,7 +1,7 @@
 //! Entwickler-Werkzeug: erzeugt ein Testheft mit allen Stufen und misst die Zeiten.
 //! Aufruf: cargo run --release --example testheft [--buch] [Ausgabe.pdf]
 
-use puzzlecellar::heft::{self, Einstellungen, Mischung};
+use puzzlecellar::heft::{self, Anordnung, Einstellungen};
 use puzzlecellar::pdf::{schreibe_heft, Format, HeftKopf};
 use std::time::Instant;
 
@@ -14,7 +14,7 @@ fn main() {
         .unwrap_or_else(|| if buch { "target/testheft_buch.pdf" } else { "target/testheft.pdf" }.to_string());
     let einst = Einstellungen {
         anzahl: 12,
-        mischung: Mischung::Ansteigend,
+        anordnung: Anordnung::Aufsteigend,
         ..Default::default()
     };
     let nummer = 4711;

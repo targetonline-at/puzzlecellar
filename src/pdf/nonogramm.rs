@@ -11,7 +11,8 @@ fn setze_farbe(s: &Seite, ng: &Nonogramm, farbe: u8) {
         let [r, g, b] = ng.farben[farbe as usize - 1];
         s.fuellfarbe_rgb(r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0);
     } else {
-        s.fuellfarbe(0.1);
+        // Helleres Grau statt Vollschwarz – spart Tinte, bleibt klar als „gefüllt“ lesbar
+        s.fuellfarbe(0.35);
     }
 }
 
@@ -122,7 +123,7 @@ pub fn zeichne_aufgabe(s: &Seite, ng: &Nonogramm, feld: Rechteck) {
     let mr = ng.zeilen.iter().map(Vec::len).max().unwrap_or(1).max(1);
     let mc = ng.spalten.iter().map(Vec::len).max().unwrap_or(1).max(1);
     let legende = if ng.farbig() { 18.0 } else { 0.0 };
-    let z = (feld.b / (mr + b) as f32).min((feld.h - legende) / (mc + h) as f32).min(7.5);
+    let z = (feld.b / (mr + b) as f32).min((feld.h - legende) / (mc + h) as f32).min(4.0);
     let gesamt_b = (mr + b) as f32 * z;
     let x0 = feld.x + (feld.b - gesamt_b) / 2.0;
     let (gx, gy) = (x0 + mr as f32 * z, feld.y + mc as f32 * z);

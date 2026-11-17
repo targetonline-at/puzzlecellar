@@ -421,13 +421,60 @@ pub fn waehle<R: Rng>(stufen: &[Stufe], rng: &mut R) -> Vec<Nonogramm> {
                 frei = (0..kat.len()).collect();
                 frei.shuffle(rng);
             }
-            let pos = (0..frei.len())
-                .min_by_key(|&p| (kat[frei[p]].1.stufe as i32 - s as i32).abs())
-                .unwrap();
+            // Zuerst die Motive mit der besten Stufen-Nähe bestimmen …
+            let dist = |p: usize| (kat[frei[p]].1.stufe as i32 - s as i32).abs();
+            let beste = (0..frei.len()).map(dist).min().unwrap();
+            let kandidaten: Vec<usize> = (0..frei.len()).filter(|&p| dist(p) == beste).collect();
+            // … und darunter die weniger symmetrischen bevorzugen (zu symmetrische Motive sind fad)
+            let gewichte: Vec<f32> = kandidaten
+                .iter()
+                .map(|&p| (1.05 - spiegel_symmetrie(kat[frei[p]].0)).max(0.12))
+                .collect();
+            let pos = kandidaten[gewichtete_wahl(&gewichte, rng)];
             let (motiv, bewertung) = &kat[frei.remove(pos)];
             baue(motiv, bewertung, rng.gen_bool(0.5))
         })
         .collect()
+}
+
+/// Wählt einen Index aus `gewichte` zufällig, proportional zu den Gewichten.
+fn gewichtete_wahl<R: Rng>(gewichte: &[f32], rng: &mut R) -> usize {
+    let summe: f32 = gewichte.iter().sum();
+    let mut ziel = rng.gen::<f32>() * summe;
+    for (i, &g) in gewichte.iter().enumerate() {
+        ziel -= g;
+        if ziel <= 0.0 {
+            return i;
+        }
+    }
+    gewichte.len() - 1
+}
+
+/// Wie spiegelsymmetrisch ein Motiv ist (0 = gar nicht, 1 = perfekt): das Maximum über
+/// waagrechte, senkrechte und 180°-Spiegelung, nur über die gezeichneten Felder gemessen
+/// (leere Ränder zählen nicht mit, sonst wirkte jedes Motiv symmetrischer als es ist).
+fn spiegel_symmetrie(m: &Motiv) -> f32 {
+    let (b, h) = (m.breite, m.hoehe);
+    let messe = |idx: &dyn Fn(usize, usize) -> usize| -> f32 {
+        let (mut relevant, mut gleich) = (0usize, 0usize);
+        for r in 0..h {
+            for c in 0..b {
+                let a = m.pixel[r * b + c];
+                let sp = m.pixel[idx(r, c)];
+                if a != 0 || sp != 0 {
+                    relevant += 1;
+                    if a == sp {
+                        gleich += 1;
+                    }
+                }
+            }
+        }
+        if relevant == 0 { 0.0 } else { gleich as f32 / relevant as f32 }
+    };
+    let waagrecht = messe(&|r, c| r * b + (b - 1 - c));
+    let senkrecht = messe(&|r, c| (h - 1 - r) * b + c);
+    let gedreht = messe(&|r, c| (h - 1 - r) * b + (b - 1 - c));
+    waagrecht.max(senkrecht).max(gedreht)
 }
 
 fn baue(m: &Motiv, bew: &Bewertung, spiegeln: bool) -> Nonogramm {

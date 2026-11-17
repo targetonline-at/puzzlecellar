@@ -169,6 +169,15 @@ impl<'a> Seite<'a> {
         );
     }
 
+    /// Geschlossener Umriss (nur Kontur) in der aktuellen Linienfarbe.
+    pub fn umriss(&self, ecken: &[(f32, f32)], staerke_pt: f32) {
+        self.ebene.set_outline_thickness(staerke_pt);
+        self.ebene.add_line(Line {
+            points: ecken.iter().map(|&(x, y)| self.punkt(x, y)).collect(),
+            is_closed: true,
+        });
+    }
+
     pub fn vieleck(&self, ecken: &[(f32, f32)], modus: PaintMode) {
         self.ebene.add_polygon(Polygon {
             rings: vec![ecken.iter().map(|&(x, y)| self.punkt(x, y)).collect()],

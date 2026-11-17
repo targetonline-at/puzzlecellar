@@ -1,7 +1,7 @@
 //! Das Fenster: Einstellungen, großer Knopf, Fortschritt, fertiges PDF öffnen.
 
 use eframe::egui::{self, RichText};
-use puzzlecellar::heft::{self, Art, Einstellungen, Mischung};
+use puzzlecellar::heft::{self, Anordnung, Art, Einstellungen};
 use puzzlecellar::pdf::{schreibe_heft, Format, HeftKopf};
 use puzzlecellar::raetsel::Stufe;
 use rand::Rng;
@@ -133,17 +133,28 @@ impl eframe::App for RaetselApp {
                         ui.end_row();
 
                         ui.label("Schwierigkeit");
-                        egui::ComboBox::from_id_salt("mischung")
-                            .selected_text(self.einst.mischung.name())
-                            .width(240.0)
-                            .show_ui(ui, |ui| {
-                                let optionen = [Mischung::EherSchwer, Mischung::Ansteigend]
-                                    .into_iter()
-                                    .chain(Stufe::IM_HEFT.map(Mischung::Nur));
-                                for m in optionen {
-                                    ui.selectable_value(&mut self.einst.mischung, m, m.name());
+                        ui.vertical(|ui| {
+                            ui.horizontal(|ui| {
+                                for s in Stufe::IM_HEFT {
+                                    let mut an = self.einst.stufen.contains(&s);
+                                    if ui.checkbox(&mut an, s.name()).changed() {
+                                        if an {
+                                            if !self.einst.stufen.contains(&s) {
+                                                self.einst.stufen.push(s);
+                                            }
+                                        } else {
+                                            self.einst.stufen.retain(|&x| x != s);
+                                        }
+                                    }
                                 }
                             });
+                            ui.add_space(4.0);
+                            ui.horizontal(|ui| {
+                                for a in Anordnung::ALLE {
+                                    ui.selectable_value(&mut self.einst.anordnung, a, a.name());
+                                }
+                            });
+                        });
                         ui.end_row();
 
                         ui.label("Papierformat");
@@ -182,7 +193,8 @@ impl eframe::App for RaetselApp {
             ui.vertical_centered(|ui| {
                 let knopf = egui::Button::new(RichText::new("Neues Rätselheft erzeugen").size(20.0).strong())
                     .min_size(egui::vec2(320.0, 50.0));
-                if ui.add_enabled(!laeuft && !self.einst.arten.is_empty(), knopf).clicked() {
+                let bereit = !laeuft && !self.einst.arten.is_empty() && !self.einst.stufen.is_empty();
+                if ui.add_enabled(bereit, knopf).clicked() {
                     self.starte(ctx);
                 }
                 ui.add_space(14.0);

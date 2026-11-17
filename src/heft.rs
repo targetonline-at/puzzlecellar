@@ -4,7 +4,7 @@ use crate::pdf::Format;
 use crate::raetsel::{binoxo, nonogramm, schiffe, sudoku, Raetsel, Stufe};
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
-use rand::{Rng, SeedableRng};
+use rand::SeedableRng;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Mutex;
 
@@ -30,23 +30,22 @@ impl Art {
     }
 }
 
-/// Wie die Schwierigkeiten im Heft verteilt werden.
+/// Wie die (ausgewählten) Schwierigkeitsstufen im Heft angeordnet werden.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Mischung {
-    /// Zufällig gemischt: schwer, sehr schwer und teuflisch
-    EherSchwer,
-    /// Von schwer bis teuflisch, gleichmäßig verteilt
-    Ansteigend,
-    /// Alle Rätsel in derselben Stufe
-    Nur(Stufe),
+pub enum Anordnung {
+    /// Zufällig gemischt über die gewählten Stufen
+    Gemischt,
+    /// Gleichmäßig von leicht nach schwer über die gewählten Stufen
+    Aufsteigend,
 }
 
-impl Mischung {
-    pub fn name(self) -> String {
+impl Anordnung {
+    pub const ALLE: [Anordnung; 2] = [Anordnung::Gemischt, Anordnung::Aufsteigend];
+
+    pub fn name(self) -> &'static str {
         match self {
-            Mischung::EherSchwer => "Gemischt (schwer bis teuflisch)".into(),
-            Mischung::Ansteigend => "Ansteigend (schwer → teuflisch)".into(),
-            Mischung::Nur(s) => format!("Nur {}", s.name()),
+            Anordnung::Gemischt => "Gemischt",
+            Anordnung::Aufsteigend => "Aufsteigend",
         }
     }
 }
@@ -54,7 +53,9 @@ impl Mischung {
 #[derive(Clone, Debug)]
 pub struct Einstellungen {
     pub anzahl: usize,
-    pub mischung: Mischung,
+    /// Gewünschte Stufen – beliebig kombinierbar (Mehrfachauswahl)
+    pub stufen: Vec<Stufe>,
+    pub anordnung: Anordnung,
     pub arten: Vec<Art>,
     pub format: Format,
 }
@@ -63,7 +64,8 @@ impl Default for Einstellungen {
     fn default() -> Self {
         Einstellungen {
             anzahl: 8,
-            mischung: Mischung::EherSchwer,
+            stufen: Stufe::IM_HEFT.to_vec(),
+            anordnung: Anordnung::Gemischt,
             arten: Art::ALLE.to_vec(),
             format: Format::A4,
         }
@@ -96,16 +98,13 @@ pub fn plane(e: &Einstellungen, nummer: u32) -> Vec<(Art, Stufe)> {
     }
     let n = arten.len();
 
-    let mut stufen: Vec<Stufe> = match e.mischung {
-        Mischung::Nur(s) => vec![s; n],
-        Mischung::Ansteigend => (0..n).map(|k| Stufe::IM_HEFT[k * 3 / n]).collect(),
-        Mischung::EherSchwer => (0..n)
-            .map(|_| match rng.gen_range(0..8) {
-                0..=2 => Stufe::Schwer,
-                3..=5 => Stufe::SehrSchwer,
-                _ => Stufe::Teuflisch,
-            })
-            .collect(),
+    // Gewählte Stufen (Mehrfachauswahl); leer = alle Heft-Stufen
+    let mut gewaehlt: Vec<Stufe> = if e.stufen.is_empty() { Stufe::IM_HEFT.to_vec() } else { e.stufen.clone() };
+    gewaehlt.sort();
+    gewaehlt.dedup();
+    let mut stufen: Vec<Stufe> = match e.anordnung {
+        Anordnung::Aufsteigend => (0..n).map(|k| gewaehlt[k * gewaehlt.len() / n]).collect(),
+        Anordnung::Gemischt => (0..n).map(|_| *gewaehlt.choose(&mut rng).unwrap()).collect(),
     };
     // Das Heft wird nach hinten schwerer
     stufen.sort();
@@ -113,11 +112,12 @@ pub fn plane(e: &Einstellungen, nummer: u32) -> Vec<(Art, Stufe)> {
 }
 
 /// Ordnet so, dass die kleinen Rätsel (vier pro Seite) volle Seiten füllen und die
-/// Nonogramme (ganze Seite) dazwischen liegen – grob weiter nach Schwierigkeit.
+/// Nonogramme (zwei halbe Seiten pro Blatt) dazwischen liegen – grob nach Schwierigkeit.
 fn seiten_ordnen(paare: Vec<(Art, Stufe)>) -> Vec<(Art, Stufe)> {
     let (gross, klein): (Vec<_>, Vec<_>) = paare.into_iter().partition(|p| p.0 == Art::Nonogramm);
     let mut bloecke: Vec<Vec<(Art, Stufe)>> = klein.chunks(4).map(|c| c.to_vec()).collect();
-    bloecke.extend(gross.into_iter().map(|p| vec![p]));
+    // Nonogramme paarweise: zwei halbe Seiten füllen zusammen eine ganze
+    bloecke.extend(gross.chunks(2).map(|c| c.to_vec()));
     // Stabil nach der leichtesten Stufe im Block
     bloecke.sort_by_key(|b| b[0].1);
     bloecke.concat()
